@@ -9,48 +9,44 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
+import com.mygdx.game.utils.TiledObjectUtil;
 
 import static com.mygdx.game.utils.Constants.PPM;
 
 
 public class MyGdxGame extends ApplicationAdapter {
 
+	private boolean DEBUG = false;
 	private final float SCALE = 2.0f;
 	private OrthographicCamera camera;
+
+	private OrthogonalTiledMapRenderer tmr;
+
+	private TiledMap map;
+
+
 	private SpriteBatch batch;
 	private  Texture texture;
 	private Box2DDebugRenderer b2dr;
 	private World world;
 	private Body player, platform;
 
-	Texture imgR;
-	Texture imgL;
-	Texture imgU;
-	Texture imgD;
-	Texture staticImgL;
-	Texture staticImgR;
-	Texture staticImgU;
-	Texture staticImgD;
 
 
-	TextureRegion[] animationFramesR;
-	TextureRegion[] animationFramesL;
-	TextureRegion[] animationFramesU;
-	TextureRegion[] animationFramesD;
-	Animation animationR;
-	Animation animationL;
-	Animation animationU;
-	Animation animationD;
 
-	float elapsedTime;
-	float x;
-	float y;
+
+
+
 
 	@Override
 	public void create () {
+
 
 		float w = Gdx.graphics.getWidth();
 		float h = Gdx.graphics.getHeight();
@@ -58,66 +54,24 @@ public class MyGdxGame extends ApplicationAdapter {
 		camera = new OrthographicCamera();
 		camera.setToOrtho(false, w / SCALE, h / SCALE);
 
+
 		world = new World(new Vector2(0, 0), false);
 		b2dr = new Box2DDebugRenderer();
 
-		player = createBox(8, 10, 32, 48, false);
-		platform = createBox(0, 0, 64, 32, true);
+		texture = new Texture("Grandpa_singleR.png");
+		map = new TmxMapLoader().load("Maps/untitled.tmx");
+		tmr = new OrthogonalTiledMapRenderer(map);
+
+
+		player = createBox(360, 200, 32, 48, false);
+		platform = createBox(140, 130, 64, 32, true);
+//		platform = createBox(560,230,64,32,true);
 
 		batch = new SpriteBatch();
-		imgR = new Texture("Grandpa_spriteR.png");
-		imgL = new Texture("Grandpa_spriteL.png");
-		imgU = new Texture("Grandpa_spriteU.png");
-		imgD = new Texture("Grandpa_spriteD.png");
 
 
-		staticImgL = new Texture("Grandpa_singleL.png");
-		staticImgR = new Texture("Grandpa_singleR.png");
-		staticImgU = new Texture("Grandpa_singleU.png");
-		staticImgD = new Texture("Grandpa_singleD.png");
+		TiledObjectUtil.parseTiledObjectLayer(world, map.getLayers().get("collision-layer").getObjects());
 
-
-		TextureRegion[][] tmpFramesR = TextureRegion.split(imgR, 60, 48);
-		TextureRegion[][] tmpFramesL = TextureRegion.split(imgL, 60, 48);
-		TextureRegion[][] tmpFramesU = TextureRegion.split(imgU, 60, 48);
-		TextureRegion[][] tmpFramesD = TextureRegion.split(imgD, 60, 48);
-
-//		looping over animation
-		animationFramesR = new TextureRegion[9];
-		int indexR = 0;
-
-		for (int i = 0; i < 9; i++) {
-			for (int j = 0; j < 1; j++) {
-				animationFramesR[indexR++] = tmpFramesR[j][i];
-			}
-		}
-
-		animationFramesL = new TextureRegion[9];
-		int indexL = 0;
-
-		for (int i = 0; i < 9; i++) {
-			for (int j = 0; j < 1; j++) {
-				animationFramesL[indexL++] = tmpFramesL[j][i];
-			}
-		}
-
-		animationFramesU = new TextureRegion[9];
-		int indexU = 0;
-
-		for (int i = 0; i < 9; i++) {
-			for (int j = 0; j < 1; j++) {
-				animationFramesU[indexU++] = tmpFramesU[j][i];
-			}
-		}
-
-		animationFramesD = new TextureRegion[9];
-		int indexD = 0;
-
-		for (int i = 0; i < 9; i++) {
-			for (int j = 0; j < 1; j++) {
-				animationFramesD[indexD++] = tmpFramesD[j][i];
-			}
-		}
 
 	}
 	@Override
@@ -128,13 +82,11 @@ public class MyGdxGame extends ApplicationAdapter {
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
 		batch.begin();
-		batch.draw(staticImgR, player.getPosition().x * PPM -(staticImgR.getWidth() / 17),player.getPosition().y * PPM -(staticImgR.getHeight()/2));
-
-
-
-
-
+		batch.draw(texture, player.getPosition().x * PPM -(texture.getWidth() / 17),player.getPosition().y * PPM -(texture.getHeight()/2));
 		batch.end();
+
+		tmr.setView(camera);
+		tmr.render();
 
 		b2dr.render(world, camera.combined.scl(PPM));
 
@@ -152,6 +104,8 @@ public class MyGdxGame extends ApplicationAdapter {
 		b2dr.dispose();
 		world.dispose();
 		batch.dispose();
+		tmr.dispose();
+		map.dispose();
 	}
 
 	public void update(float delta){
@@ -161,6 +115,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		inputUpdate(delta);
 		cameraUpdate(delta);
+		tmr.setView(camera);
 		batch.setProjectionMatrix(camera.combined);
 
 
@@ -173,7 +128,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		if(Gdx.input.isKeyPressed(Input.Keys.LEFT)){
 				horizontalForce -=1;
 		}
-		if(Gdx.input.isKeyPressed(Input.Keys.RIGHT)){batch.draw((TextureRegion) animationR.getKeyFrame(elapsedTime,true), x, y);
+		if(Gdx.input.isKeyPressed(Input.Keys.RIGHT)){;
 				horizontalForce +=1;
 		}
 		if(Gdx.input.isKeyPressed(Input.Keys.UP)){
@@ -191,8 +146,13 @@ public class MyGdxGame extends ApplicationAdapter {
 
 	public void cameraUpdate(float delta){
 		Vector3 position = camera.position;
-		position.x = player.getPosition().x * PPM;
-		position.y = player.getPosition().y * PPM;
+		//linear interpolation
+		//a +(b-a) * lerp
+		//b = target
+		//a = current camera position
+
+		position.x = camera.position.x +(player.getPosition().x * PPM - camera.position.x) * .1f;
+		position.y = camera.position.y +( player.getPosition().y * PPM - camera.position.y) * .1f;
 		camera.position.set(position);
 
 		camera.update();
